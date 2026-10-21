@@ -81,9 +81,3 @@ Tested the API using Postman to ensure authentication works and access without a
 ---
 
 ## 6. CVE Vulnerability Analysis: CVE-2022-4223
-
-### 6.1 Vulnerability Information
-- **CVE ID**: CVE-2022-4223
-- **Affected Software**: pgAdmin 6.16 and earlier versions.
-- **Vulnerability Type**: Unauthenticated Remote Code Execution (RCE) / OS Command Injection.
-- **Description**: The `/misc/validate_binary_path` interface in pgAdmin lacks authentication and directly concatenates user input (`utility_path`) into a system command. Attackers can execute arbitrary system commands on the server without logging in.
