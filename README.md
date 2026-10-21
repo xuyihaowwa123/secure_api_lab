@@ -40,3 +40,50 @@ This project implements a secure REST API based on Python Flask. It provides JWT
     "username":"admin",
     "password":"password123!"
 }
+## 3. Implementation of Security Measures
+- **SQL Injection (SQLi) Protection**: 
+  - Used Parameterized Queries / ORM (SQLAlchemy) to interact with the database.
+  - Strictly avoided string concatenation when forming SQL queries.
+- **XSS Protection**: 
+  - Sanitized (escaped) all user-provided data before returning it in API responses.
+- **Broken Authentication Protection**: 
+  - **Password Hashing**: Passwords are never stored in plaintext. They are hashed using `bcrypt` (or Argon2).
+  - **JWT Implementation**: Issued JWT tokens upon successful login. Wrote middleware to verify the JWT signature and expiration on all protected routes.
+
+## 4. CI/CD Pipeline & Security Scanning
+The CI/CD pipeline is configured using GitHub Actions (`.github/workflows/ci.yml`). It runs automatically on every push and pull request.
+
+- **SAST (Static Application Security Testing)**: Configured `Bandit` (for Python) to scan the source code for security flaws.
+- **SCA (Software Composition Analysis)**: Configured `Safety` (for Python) to check dependencies for known vulnerabilities.
+
+### Pipeline Results
+*[在这里插入 CI/CD 跑通绿色的截图]*
+![CI Pipeline](<screenshots/屏幕截图 2026-10-19 224226.png>)
+
+### SAST/SCA Reports
+*[在这里插入扫描工具的控制台输出截图，证明没有高危漏洞]*
+![SAST and SCA Scan](<screenshots/屏幕截图 2026-10-19 224436.png>)
+
+## 5. API Testing (Postman/curl)
+Tested the API using Postman to ensure authentication works and access without a token is denied.
+
+### Login and obtain JWT token
+![Postman login request and JWT response](<screenshots/屏幕截图 2026-10-19 223909.png>)
+
+### Access protected data (with Token)
+*[如果你有测试 /api/data 的截图，可以放在这里]*
+![Access Data with Token](<screenshots/你的带token请求截图.png>)
+
+### Access denied (without Token)
+*[插入一张不带 Token 访问 /api/data 报 401/403 错误的截图]*
+![Access Denied without Token](<screenshots/你的无token请求截图.png>)
+
+---
+
+## 6. CVE Vulnerability Analysis: CVE-2022-4223
+
+### 6.1 Vulnerability Information
+- **CVE ID**: CVE-2022-4223
+- **Affected Software**: pgAdmin 6.16 and earlier versions.
+- **Vulnerability Type**: Unauthenticated Remote Code Execution (RCE) / OS Command Injection.
+- **Description**: The `/misc/validate_binary_path` interface in pgAdmin lacks authentication and directly concatenates user input (`utility_path`) into a system command. Attackers can execute arbitrary system commands on the server without logging in.
