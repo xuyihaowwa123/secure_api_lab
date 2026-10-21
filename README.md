@@ -46,13 +46,12 @@ This project implements a secure REST API based on Python Flask. It provides JWT
 ### ② Access protected endpoint `/api/data`
 - Method: `GET`
 - URL: `http://127.0.0.1:5000/api/data`
-<img width="1265" height="756" alt="屏幕截图 2026-10-19 224226" src="https://github.com/user-attachments/assets/ad474256-6838-41b6-b762-6da6ba8b9764" />
+
 
 ### ③ Access protected endpoint `/api/user/profile`
 
 - Method: `GET`
 - URL: `http://127.0.0.1:5000/api/user/profile`
-<img width="1257" height="672" alt="屏幕截图 2026-10-19 224436" src="https://github.com/user-attachments/assets/01583c42-f5b7-4e14-a6ab-a32cbf7738ad" />
 
 ## Security Mechanism Implementation
 
