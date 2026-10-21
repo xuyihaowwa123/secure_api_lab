@@ -45,7 +45,7 @@ The CI/CD pipeline is configured using GitHub Actions (`.github/workflows/ci.yml
 ![CI Pipeline](<screenshots/屏幕截图 2026-10-19 224226.png>)
 
 ### SAST/SCA Reports
-![SAST and SCA Scan](<screenshots/屏幕截图 2026-10-19 224436.png>)
+![SAST and SCA Scan](<screenshots/image.png>)
 
 ## 5. API Testing (Postman/curl)
 Tested the API using Postman to ensure authentication works and access without a token is denied.
