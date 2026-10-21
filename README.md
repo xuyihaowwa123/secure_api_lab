@@ -40,6 +40,7 @@ This project implements a secure REST API based on Python Flask. It provides JWT
     "username":"admin",
     "password":"password123!"
 }
+
 ## 3. Implementation of Security Measures
 - **SQL Injection (SQLi) Protection**: 
   - Used Parameterized Queries / ORM (SQLAlchemy) to interact with the database.
