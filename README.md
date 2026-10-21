@@ -40,7 +40,8 @@ This project implements a secure REST API based on Python Flask. It provides JWT
     "username":"admin",
     "password":"password123!"
 }
-<img width="1230" height="683" alt="屏幕截图 2026-10-19 223909" src="https://github.com/user-attachments/assets/ca50d1b0-553d-4020-9d74-70c167e99463" />
+![Postman login request and JWT response](screenshots/屏幕截图 2026-10-19 223909.png)
+
 
 ### ② Access protected endpoint `/api/data`
 - Method: `GET`
