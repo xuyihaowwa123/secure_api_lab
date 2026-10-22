@@ -160,14 +160,7 @@ Reproduction was performed against the unmodified Vulhub environment
 
 ![Original vulnerable docker-compose.yml](<screenshots/屏幕截图 2026-10-21 103759.png>)
 
-```yaml
-version: '2'
-services:
-  web:
-    image: vulhub/pgadmin:6.16
-    ports:
-      - "5050:5050"
-```
+
 
 ### 7.1 Start the vulnerable environment
 
@@ -210,17 +203,7 @@ In Postman the same request is `POST http://localhost:5050/misc/validate_binary_
 
 ![RCE reproduced: uid=0(root) in the response](<screenshots/屏幕截图 2026-10-21 103456.png>)
 
-```
-HTTP/1.1 200 OK
-Content-Type: application/json
 
-{"success":1,"errormsg":"","info":"","result":null,
- "data":"<b>pg_dump:</b> /bin/sh: 1: /usr/local/lib/python3.10/site-packages/pgadmin4/a: not found
-         uid=0(root) gid=0(root) groups=0(root)<br/>
-         <b>pg_dumpall:</b> ... uid=0(root) gid=0(root) groups=0(root)<br/>
-         <b>pg_restore:</b> ... uid=0(root) gid=0(root) groups=0(root)<br/>
-         <b>psql:</b> ... uid=0(root) gid=0(root) groups=0(root)<br/>"}
-```
 
 `id` ran four times — once per entry of `UTILITIES_ARRAY` — and its stdout was returned inside the
 JSON response. This is not a blind injection: the attacker reads the command output directly.
