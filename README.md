@@ -102,7 +102,7 @@ Latest run: <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/397864
 ![CI pipeline — both jobs green](<screenshots/ci-run-2026-10-22.png>)
 
 ### SAST and SCA reports
-![Bandit and pip-audit step logs](<screenshots/ci-scan-2026-10-22.png>)
+![Bandit and pip-audit step logs](<screenshots/屏幕截图 2026-10-22 213714.png>)
 
 ## 5. API Testing (Postman/curl)
 
