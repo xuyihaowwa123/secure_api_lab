@@ -99,7 +99,7 @@ The token middleware already pins the expected algorithm (`algorithms=["HS256"]`
 ### Pipeline results
 Latest run: <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39786413411>
 
-![CI pipeline — both jobs green](<screenshots/ci-run-2026-10-22.png>)
+![CI pipeline — both jobs green](<screenshots/屏幕截图 2026-10-22 214108.png>)
 
 ### SAST and SCA reports
 ![Bandit and pip-audit step logs](<screenshots/屏幕截图 2026-10-22 213714.png>)
