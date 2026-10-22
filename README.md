@@ -18,7 +18,7 @@ in pgAdmin 4: reproduction, root cause, the applied fix, and proof that the fix 
 - **Language/Framework**: Python 3.11, Flask 3.1.3
 - **Packages**: Flask-SQLAlchemy, bcrypt, PyJWT 2.15.0, python-dotenv 1.2.2 (pinned in `requirements.txt`)
 - **Database**: SQLite
-- **Testing tools**: Postman (manual), pytest (automated, in CI)
+- **Testing tool**: Postman
 
 ## 2. API Endpoints
 | Method | Endpoint | Description | Require JWT Token |
@@ -75,11 +75,7 @@ in pgAdmin 4: reproduction, root cause, the applied fix, and proof that the fix 
 
 ## 4. CI/CD Pipeline & Security Scanning
 
-The pipeline lives in `.github/workflows/ci.yml` and runs on every push and pull request to `master`. Two independent jobs run in parallel.
-
-**`Functional tests`** installs `requirements.txt` on Python 3.11 and runs `python -m pytest`. Six cases pin down the contract of the three endpoints: a valid login returns a token, a wrong password returns 401, both protected routes return 401 without a token and 200 with one, a malformed token is rejected, and an XSS payload is never echoed back as raw HTML. This job is what makes a dependency upgrade a measured change instead of a guess.
-
-**`SAST + SCA`** runs the two scanners:
+The pipeline lives in `.github/workflows/ci.yml` and runs on every push and pull request to `master`, on Python 3.11. It has a single job with the two scanners:
 
 - **SAST — Bandit.** Executed twice on purpose. The first pass uses `--exit-zero` and writes `bandit-report.json`, so the report exists even when findings are present; the second pass prints to the log and is the gate. Bandit exits non-zero on any finding at any severity, so a single issue fails the job.
 - **SCA — pip-audit.** Scans `requirements.txt` only, and is also gating — the baseline is clean, so a regression is caught.
@@ -98,7 +94,7 @@ The first version of this project pinned packages that carried known vulnerabili
 | python-dotenv | 1.0.1 | 1.2.2 | CVE-2026-28684, arbitrary file overwrite |
 | Pygments | 2.19.2 | removed | CVE-2026-4539; it was only a transitive dependency of Bandit |
 
-The token middleware already pins the expected algorithm (`algorithms=["HS256"]`), which is why the algorithm-confusion and allow-list findings were not exploitable here; the upgrade removes them from the report regardless. Python 3.8 reached end of life in October 2024, so the project now targets 3.11 — Flask 3.1 and python-dotenv 1.2 require 3.9 and 3.10 respectively. `pip-audit -r requirements.txt` reports `No known vulnerabilities found` and the six functional tests still pass, which is the regression check the upgrade needs.
+The token middleware already pins the expected algorithm (`algorithms=["HS256"]`), which is why the algorithm-confusion and allow-list findings were not exploitable here; the upgrade removes them from the report regardless. Python 3.8 reached end of life in October 2024, so the project now targets 3.11 — Flask 3.1 and python-dotenv 1.2 require 3.9 and 3.10 respectively. `pip-audit -r requirements.txt` reports `No known vulnerabilities found`, and the upgrade was smoke-tested against all three endpoints locally before it was committed.
 
 ### Pipeline results
 Latest run: <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39752794238>
