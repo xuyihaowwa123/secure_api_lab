@@ -1,5 +1,7 @@
 # Secure REST API Lab Project & CVE Analysis
 
+[![Security CI Pipeline](https://github.com/xuyihaowwa123/secure_api_lab/actions/workflows/ci.yml/badge.svg)](https://github.com/xuyihaowwa123/secure_api_lab/actions/workflows/ci.yml)
+
 This project implements a secure REST API based on Python Flask. It provides JWT-based user authentication, access control for protected endpoints, and security countermeasures against SQL Injection and XSS. A GitHub Actions CI/CD pipeline runs the API test suite and two security scanners — Bandit for SAST and pip-audit for SCA — on every push.
 
 The second half of this document analyses **CVE-2022-4223**, an unauthenticated remote command execution
