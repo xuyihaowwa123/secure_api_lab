@@ -80,7 +80,7 @@ The CI/CD pipeline is configured using GitHub Actions (`.github/workflows/ci.yml
 - Both reports (`bandit-report.json`, `safety-report.txt`) are uploaded as the `security-reports` artifact of each run.
 
 ### Pipeline Results
-![CI Pipeline](<screenshots/屏幕截图 2026-10-19 224226.png>)
+![CI Pipeline](<screenshots/屏幕截图 2026-10-21 103759.png>)
 
 ### SAST/SCA Reports
 ![SAST and SCA Scan](<screenshots/image.png>)
