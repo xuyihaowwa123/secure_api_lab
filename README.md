@@ -80,7 +80,7 @@ The CI/CD pipeline is configured using GitHub Actions (`.github/workflows/ci.yml
 - Both reports (`bandit-report.json`, `safety-report.txt`) are uploaded as the `security-reports` artifact of each run.
 
 ### Pipeline Results
-![CI Pipeline](<screenshots/屏幕截图 2026-10-21 103759.png>)
+![CI Pipeline](<screenshots/屏幕截图 2026-10-21 121641.png>)
 
 ### SAST/SCA Reports
 ![SAST and SCA Scan](<screenshots/image.png>)
@@ -360,30 +360,7 @@ Three details that matter when reproducing this:
   and the client sees the connection accepted and immediately dropped (`socket hang up` in Postman,
   not `ECONNREFUSED`).
 
-### 9.2 Source-level hardening
 
-`fix/validate_binary_path.patch` is a unified diff against `web/pgadmin/misc/__init__.py` of 6.16.
-It changes four things, each closing one of the root causes above:
-
-| Change | Root cause addressed |
-|---|---|
-| `@login_required` placed **below** `@blueprint.route` | 8.1 — the guard is now registered with the view |
-| `os.path.realpath` + allow-list of binary directories | 8.2 — the attacker cannot choose an arbitrary directory |
-| `os.path.isfile` + `os.access(..., X_OK)` before execution | 8.2 — only real executables are run |
-| `subprocess.run([full_path, '--version'], shell=False)` | 8.2 — the path is one argv element, never shell syntax |
-
-The last change is decisive: with `shell=False`, the string
-`/usr/local/lib/python3.10/site-packages/pgadmin4/a";id;#/pg_dump` is looked up as a **single file
-name**. The semicolon is just a character in a filename, `sh` is never involved, and the call ends
-in `FileNotFoundError` — no execution, no output.
-
-### 9.3 Defence in depth
-
-* Run the container as a non-root user (`user: "5050:5050"`), so a future RCE is not root.
-* Do not publish 5050 to the internet; put pgAdmin behind a reverse proxy with authentication, or
-  restrict it to an administrative network / VPN.
-* Keep the audit log line (`current_app.logger.warning`) from the patched handler to detect attempts
-  against invalid binary paths.
 
 ## 10. Proof that the Vulnerability is Eliminated
 
@@ -404,29 +381,15 @@ Location: /login?next=%2Fmisc%2Fvalidate_binary_path
 Content-Type: text/html; charset=utf-8
 ```
 
-> **[TODO — add screenshot]** `screenshots/2026-10-21-fixed-302.png` — Postman with
-> **Automatically follow redirects turned off**, showing `302 Found` and the `Location` header.
-> Without disabling that option Postman silently follows the redirect and displays the login page
-> with a `200`, which looks like a successful call; the `next=/misc/validate_binary_path` parameter
-> is the trace of the authorization check.
+![RCE reproduced: uid=0(root) in the response](<screenshots/屏幕截图 2026-10-21 215119.png>)
+![RCE reproduced: uid=0(root) in the response](<screenshots/屏幕截图 2026-10-21 220425.png>)
 
-> **[TODO — add screenshot]** `screenshots/2026-10-21-csrf-token.png` — `GET /login` on the fixed
-> version still returning a CSRF token and a session. This is deliberate evidence that the fix is
-> authentication, not CSRF: the attacker can still obtain a token, and it no longer helps.
 
 | Version | Anonymous POST result | Interpretation |
 |---|---|---|
 | 6.16 | `200`, `data` contains `uid=0(root)` | vulnerable |
-| 6.17 | `200`, `not found on the specified binary path` | authorization still missing; this payload blocked by an unrelated existence check |
 | **6.18** | **`302` → `/login`** | request never reaches the handler — fixed |
 
-## 11. Attachments
-
-```
-fix/
-├── docker-compose.yml            # fixed environment (6.18 + required env vars)
-└── validate_binary_path.patch    # hardened handler, unified diff against pgAdmin 6.16
-```
 
 ## Appendix A — reproduction from scratch
 
@@ -457,20 +420,3 @@ curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' -b cookies.txt \
 # -> 302 http://localhost:5050/login?next=%2Fmisc%2Fvalidate_binary_path
 ```
 
-## Appendix B — remaining evidence checklist (delete this appendix before submitting)
-
-- [ ] `screenshots/2026-10-21-401-no-token.png` → `![401 without a token](screenshots/2026-10-21-401-no-token.png)`
-- [ ] `screenshots/2026-10-21-fixed-302.png` → `![Fixed version returns 302](screenshots/2026-10-21-fixed-302.png)`
-- [ ] `screenshots/2026-10-21-csrf-token.png` → `![Fixed version still issues a CSRF token](screenshots/2026-10-21-csrf-token.png)`
-- [ ] copy `fix/` into the repository root and commit it
-- [ ] delete every `> **[TODO ...]**` block after replacing it with the image
-
-## References
-
-- CVE record — <https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-4223>
-- NVD — <https://nvd.nist.gov/vuln/detail/CVE-2022-4223>
-- Advisory GHSA-3v6v-2x6p-32mc — <https://github.com/advisories/GHSA-3v6v-2x6p-32mc>
-- Upstream issue #5593 — <https://github.com/pgadmin-org/pgadmin4/issues/5593>
-- Fix commits — `461849c` (6.17), `799b6d8` (6.18, decorator placement)
-- Vulhub — <https://github.com/vulhub/vulhub/tree/master/pgadmin/CVE-2022-4223>
-- OWASP Top 10 2021 — A01 Broken Access Control, A03 Injection
