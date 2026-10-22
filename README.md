@@ -131,7 +131,7 @@ Expected response `401 Unauthorized`:
 - **URL**: `http://127.0.0.1:5000/api/user/profile`
 - **Authorization**: Bearer Token → the `access_token` from 5.1
 
-![Authenticated request returns the profile](<screenshots/屏幕截图 2026-10-19 224436.png>)
+![Authenticated request returns the profile](<screenshots/屏幕截图 2026-10-19 224226.png>)
 
 ## 6. Selected Vulnerability: CVE-2022-4223
 
