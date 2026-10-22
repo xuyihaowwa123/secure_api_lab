@@ -1,6 +1,6 @@
 # Secure REST API Lab Project & CVE Analysis
 
-This project implements a secure REST API based on Python Flask. It provides JWT-based user authentication, access control for protected endpoints, and security countermeasures against SQL Injection and XSS. A GitHub Actions CI/CD pipeline is configured to run automated security scanning with Bandit (SAST) and Safety (SCA).
+This project implements a secure REST API based on Python Flask. It provides JWT-based user authentication, access control for protected endpoints, and security countermeasures against SQL Injection and XSS. A GitHub Actions CI/CD pipeline runs the API test suite and two security scanners — Bandit for SAST and pip-audit for SCA — on every push.
 
 The second half of this document analyses **CVE-2022-4223**, an unauthenticated remote command execution
 in pgAdmin 4: reproduction, root cause, the applied fix, and proof that the fix works.
@@ -8,15 +8,15 @@ in pgAdmin 4: reproduction, root cause, the applied fix, and proof that the fix 
 | | |
 |---|---|
 | Repository | <https://github.com/xuyihaowwa123/secure_api_lab> |
-| Last successful pipeline | <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39542814990> |
+| Last successful pipeline | <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39752794238> |
 | Vulnerable environment | `vulhub/pgadmin:6.16` (Docker 29.9.1 / Docker Compose v5.6.0) |
 | Fixed environment | `dpage/pgadmin4:6.18` |
 
 ## 1. Environment & Dependencies
-- **Language/Framework**: Python 3.8, Flask
-- **Packages**: Flask-SQLAlchemy, bcrypt, pyjwt, python-dotenv
+- **Language/Framework**: Python 3.11, Flask 3.1.3
+- **Packages**: Flask-SQLAlchemy, bcrypt, PyJWT 2.15.0, python-dotenv 1.2.2 (pinned in `requirements.txt`)
 - **Database**: SQLite
-- **Testing tool**: Postman
+- **Testing tools**: Postman (manual), pytest (automated, in CI)
 
 ## 2. API Endpoints
 | Method | Endpoint | Description | Require JWT Token |
@@ -73,17 +73,38 @@ in pgAdmin 4: reproduction, root cause, the applied fix, and proof that the fix 
 
 ## 4. CI/CD Pipeline & Security Scanning
 
-The CI/CD pipeline is configured using GitHub Actions (`.github/workflows/ci.yml`). It runs automatically on every push and pull request to `master`.
+The pipeline lives in `.github/workflows/ci.yml` and runs on every push and pull request to `master`. Two independent jobs run in parallel.
 
-- **SAST (Static Application Security Testing)**: Configured `Bandit` to scan the source code for security flaws. This step is **gating** — the job fails if findings are reported.
-- **SCA (Software Composition Analysis)**: Configured `Safety` to check dependencies for known vulnerabilities. This step runs in **report-only** mode (`|| true`) so that pre-existing findings are recorded in the artifact without blocking merges.
-- Both reports (`bandit-report.json`, `safety-report.txt`) are uploaded as the `security-reports` artifact of each run.
+**`Functional tests`** installs `requirements.txt` on Python 3.11 and runs `python -m pytest`. Six cases pin down the contract of the three endpoints: a valid login returns a token, a wrong password returns 401, both protected routes return 401 without a token and 200 with one, a malformed token is rejected, and an XSS payload is never echoed back as raw HTML. This job is what makes a dependency upgrade a measured change instead of a guess.
 
-### Pipeline Results
-![CI Pipeline](<screenshots/屏幕截图 2026-10-21 121641.png>)
+**`SAST + SCA`** runs the two scanners:
 
-### SAST/SCA Reports
-![SAST and SCA Scan](<screenshots/image.png>)
+- **SAST — Bandit.** Executed twice on purpose. The first pass uses `--exit-zero` and writes `bandit-report.json`, so the report exists even when findings are present; the second pass prints to the log and is the gate. Bandit exits non-zero on any finding at any severity, so a single issue fails the job.
+- **SCA — pip-audit.** Scans `requirements.txt` only, and is also gating — the baseline is clean, so a regression is caught.
+
+Both reports are uploaded as the `security-reports` artifact under `if: always()`, so they survive a failing run. The workflow also sets `permissions: contents: read`, a `concurrency` group that cancels superseded runs, and `paths-ignore` for Markdown so a documentation edit does not burn a build.
+
+### Dependency remediation
+
+The first version of this project pinned packages that carried known vulnerabilities. Auditing the declared dependencies only gave 12 findings — the other 80 in the original report came from packages preinstalled on the runner image and are not part of this project:
+
+| Package | Was | Now | Finding |
+|---|---|---|---|
+| PyJWT | 2.9.0 | 2.15.0 | 6 CVEs: algorithm allow-list bypass (CVE-2026-48523), algorithm confusion (CVE-2026-48526), insufficient data-authenticity check (CVE-2026-32597), unbounded Base64URL decoding (CVE-2026-48525), plus two SSRF/DoS issues in `PyJWKClient` |
+| Werkzeug | 3.0.6 | 3.1.9 | 3 CVEs: two DoS via Windows special-file handling, one improper Windows device-name handling |
+| Flask | 3.0.3 | 3.1.3 | CVE-2026-27205, information disclosure via missing cache-variation headers |
+| python-dotenv | 1.0.1 | 1.2.2 | CVE-2026-28684, arbitrary file overwrite |
+| Pygments | 2.19.2 | removed | CVE-2026-4539; it was only a transitive dependency of Bandit |
+
+The token middleware already pins the expected algorithm (`algorithms=["HS256"]`), which is why the algorithm-confusion and allow-list findings were not exploitable here; the upgrade removes them from the report regardless. Python 3.8 reached end of life in October 2024, so the project now targets 3.11 — Flask 3.1 and python-dotenv 1.2 require 3.9 and 3.10 respectively. `pip-audit -r requirements.txt` reports `No known vulnerabilities found` and the six functional tests still pass, which is the regression check the upgrade needs.
+
+### Pipeline results
+Latest run: <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39752794238>
+
+![CI pipeline — both jobs green](<screenshots/ci-run-2026-10-22.png>)
+
+### SAST and SCA reports
+![Bandit and pip-audit step logs](<screenshots/ci-scan-2026-10-22.png>)
 
 ## 5. API Testing (Postman/curl)
 
