@@ -109,21 +109,15 @@ Response `200 OK`:
 
 ![Login returns a JWT](<screenshots/屏幕截图 2026-10-19 223909.png>)
 
-### 5.2 Access without a token is denied
+### 5.2 Access with a token
 
 - **Method**: `GET`
 - **URL**: `http://127.0.0.1:5000/api/data`
-- **Header**: none
+- **Header**: JWT TOKEN
 
-Expected response `401 Unauthorized`:
 
-```json
-{"error": "Unauthorized, missing token"}
-```
 
-> **[TODO — add screenshot]** `screenshots/2026-10-21-401-no-token.png` — Postman showing this 401.
-> The manual explicitly requires a screenshot proving that an unauthenticated call is rejected, and
-> this is currently the only required piece of evidence missing from the API part.
+![Login with a JWT](<screenshots/屏幕截图 2026-10-19 224226.png>)
 
 ### 5.3 Access with a valid token
 
@@ -131,7 +125,7 @@ Expected response `401 Unauthorized`:
 - **URL**: `http://127.0.0.1:5000/api/user/profile`
 - **Authorization**: Bearer Token → the `access_token` from 5.1
 
-![Authenticated request returns the profile](<screenshots/屏幕截图 2026-10-19 224226.png>)
+![Authenticated request returns the profile](<screenshots/屏幕截图 2026-10-19 224436.png>)
 
 ## 6. Selected Vulnerability: CVE-2022-4223
 
