@@ -10,7 +10,7 @@ in pgAdmin 4: reproduction, root cause, the applied fix, and proof that the fix 
 | | |
 |---|---|
 | Repository | <https://github.com/xuyihaowwa123/secure_api_lab> |
-| Last successful pipeline | <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39752794238> |
+| Last successful pipeline | <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39786413411> |
 | Vulnerable environment | `vulhub/pgadmin:6.16` (Docker 29.9.1 / Docker Compose v5.6.0) |
 | Fixed environment | `dpage/pgadmin4:6.18` |
 
@@ -97,7 +97,7 @@ The first version of this project pinned packages that carried known vulnerabili
 The token middleware already pins the expected algorithm (`algorithms=["HS256"]`), which is why the algorithm-confusion and allow-list findings were not exploitable here; the upgrade removes them from the report regardless. Python 3.8 reached end of life in October 2024, so the project now targets 3.11 — Flask 3.1 and python-dotenv 1.2 require 3.9 and 3.10 respectively. `pip-audit -r requirements.txt` reports `No known vulnerabilities found`, and the upgrade was smoke-tested against all three endpoints locally before it was committed.
 
 ### Pipeline results
-Latest run: <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39752794238>
+Latest run: <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39786413411>
 
 ![CI pipeline — both jobs green](<screenshots/ci-run-2026-10-22.png>)
 
