@@ -1,13 +1,12 @@
 # CVE-2022-4223 修复验证：6.16（存在漏洞） -> 6.18（已修复）
-# 原配置：image: vulhub/pgadmin:6.16
-# 说明：vulhub/pgadmin 仓库只提供了 6.16，没有 6.18，因此改用官方镜像 dpage/pgadmin4。
+
 services:
   web:
     image: dpage/pgadmin4:6.18
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: Admin123!
-      # 官方镜像默认监听 80，vulhub 镜像默认 5050；不设这一项则 5050:5050 映射指向空端口
+      # 官方镜像默认监听 80，vulhub 镜像默认 5050
       PGADMIN_LISTEN_PORT: 5050
     ports:
       - "5050:5050"
