@@ -103,7 +103,7 @@ Latest run: <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/397864
 
 ### SAST and SCA reports
 ![Bandit and pip-audit step logs](<screenshots/屏幕截图 2026-10-22 213714.png>)
-
+![Bandit and pip-audit step logs](<screenshots/屏幕截图 2026-10-22 215027.png>)
 ## 5. API Testing (Postman/curl)
 
 Tested the API using Postman to ensure authentication works and access without a token is denied.
