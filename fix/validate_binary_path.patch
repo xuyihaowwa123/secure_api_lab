@@ -1,0 +1,81 @@
+--- a/web/pgadmin/misc/__init__.py
++++ b/web/pgadmin/misc/__init__.py
+@@ -10,8 +10,9 @@
+ """A blueprint module providing utility functions for the application."""
+ 
+ import pgadmin.utils.driver as driver
+-from flask import url_for, render_template, Response, request
++from flask import url_for, render_template, Response, request, current_app
+ from flask_babel import gettext
++from flask_security import login_required
+ from pgadmin.utils import PgAdminModule, replace_binary_path
+ from pgadmin.utils.csrf import pgCSRFProtect
+ from pgadmin.utils.session import cleanup_session_files
+@@ -192,13 +193,19 @@
+ ##########################################################################
+ # A special URL used to validate the binary path
+ ##########################################################################
++# Directories the administrator is allowed to point pgAdmin at. Everything
++# outside this list is rejected before any process is spawned.
++ALLOWED_BINARY_DIRS = ['/usr/bin', '/usr/local/bin', '/usr/lib/postgresql']
++
++
+ @blueprint.route("/validate_binary_path",
+                  endpoint="validate_binary_path",
+                  methods=["POST"])
++@login_required
+ def validate_binary_path():
+     """
+     This function is used to validate the specified utilities path by
+-    running the utilities with there versions.
++    running the utilities with their versions.
+     """
+     data = None
+     if hasattr(request.data, 'decode'):
+@@ -210,20 +217,36 @@
+     version_str = ''
+     if 'utility_path' in data and data['utility_path'] is not None:
+         # Check if "$DIR" present in binary path
+-        binary_path = replace_binary_path(data['utility_path'])
++        binary_path = os.path.realpath(
++            replace_binary_path(data['utility_path']))
++
++        # 1) The path must be a real directory inside the allow-list.
++        #    realpath() resolves '..' and symlinks, so it cannot be escaped.
++        if not os.path.isdir(binary_path) or not any(
++                os.path.commonpath([binary_path, allowed]) == allowed
++                for allowed in ALLOWED_BINARY_DIRS):
++            current_app.logger.warning(
++                'Rejected binary path: %s', binary_path)
++            return precondition_required(gettext('Invalid binary path.'))
+ 
+         for utility in UTILITIES_ARRAY:
+-            full_path = os.path.abspath(
+-                os.path.join(binary_path,
+-                             (utility if os.name != 'nt' else
+-                              (utility + '.exe'))))
++            full_path = os.path.join(binary_path, utility)
++
++            # 2) Only regular, executable files are considered.
++            if not (os.path.isfile(full_path) and
++                    os.access(full_path, os.X_OK)):
++                version_str += "<b>" + utility + ":</b> " + \
++                               "not found on the specified binary path.<br/>"
++                continue
+ 
+             try:
+-                # Get the output of the '--version' command
+-                version_string = \
+-                    subprocess.getoutput('"{0}" --version'.format(full_path))
+-                # Get the version number by splitting the result string
+-                version_string.split(") ", 1)[1].split('.', 1)[0]
++                # 3) No shell: the path is passed as a single argv element,
++                #    so quotes and semicolons can never become syntax.
++                process = subprocess.run(
++                    [full_path, '--version'], shell=False, timeout=5,
++                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
++                    check=False)
++                version_string = process.stdout.decode('utf-8', 'replace')
+             except Exception:
+                 version_str += "<b>" + utility + ":</b> " + \
+                                "not found on the specified binary path.<br/>"

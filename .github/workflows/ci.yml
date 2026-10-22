@@ -1,34 +1,111 @@
+# 改进版 CI/CD 工作流
+# 复制到仓库的 .github/workflows/ci.yml 覆盖原文件即可。
+#
+# 相对原版的 6 处改动，每处都指向一个具体缺陷：
+#   1. 增加 test 作业  —— 原版只扫不测，CI 名不副实
+#   2. Bandit 跑两遍   —— 一遍 --exit-zero 写 JSON，一遍 txt 打到日志并作为门禁
+#   3. 换成 pip-audit  —— Safety 的 check 命令 2024-06-01 起官方停止支持；而且它扫的是
+#                         整个 runner 环境，实测 92 条漏洞里 80 条来自 runner 预装的包
+#   4. upload 加 always() —— 否则 Bandit 一报错，报告就在最需要它的时候被跳过
+#   5. 加 permissions / concurrency / paths-ignore —— 最小权限、取消过期构建、文档改动不跑
+#   6. python 升到 3.11 —— 3.8 已于 2024-10 结束安全支持；3.11 与本机 3.11.9 一致，
+#      （runner 上由 setup-python 现场下载，与你在本机装没装无关；想写 3.12 也可，改这一行即可）
+
 name: Security CI Pipeline
+
 on:
   push:
     branches: [ master ]
+    paths-ignore:
+      - '**.md'
+      - 'screenshots/**'
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
+
+# 默认的 GITHUB_TOKEN 权限过大；本流程只需要读代码
+permissions:
+  contents: read
+
+# 同一分支的新提交自动取消旧构建，避免排队
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  security-scan:
+  # ---------- 功能测试：证明接口真的能用，而不只是"扫得干净" ----------
+  test:
+    name: Functional tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.11"
+          cache: pip
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install bandit safety
-      #SAST bandit静态代码扫描
-      - name: SAST Bandit scan
-        run: bandit -r ./ -f json -o bandit-report.json
-      #SCA Safety依赖漏洞扫描
-      - name: SCA Safety dependency scan
-        run: safety check > safety-report.txt || true
+          pip install "pytest>=8,<9"
+
+      - name: Run pytest
+        env:
+          # 只用于 CI 的临时密钥，绝不能用生产密钥
+          JWT_SECRET_KEY: ci-only-not-a-real-secret
+        # 用 python -m pytest 而不是裸 pytest：后者不会把仓库根目录放进 sys.path，
+        # 会把 tests/test_api.py 里的 `from app import app` 打成 ModuleNotFoundError。
+        # tests/conftest.py 也补了同样的路径，双保险。
+        run: python -m pytest -q
+
+  # ---------- 安全扫描：SAST + SCA ----------
+  security-scan:
+    name: SAST + SCA
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # 工具版本同样要锁，否则某天上游改了 CLI 就会突然红
+          pip install "bandit==1.7.10" "pip-audit>=2.7,<3"
+
+      # SAST：第一遍 --exit-zero 保证 JSON 一定落盘；第二遍打到日志并作为门禁。
+      # 原版只有第一遍 + -o，结果是"日志里什么都看不到，报告还传不上去"。
+      - name: SAST - Bandit
+        run: |
+          bandit -r . -x ./venv,./tests -f json -o bandit-report.json --exit-zero
+          bandit -r . -x ./venv,./tests -f txt
+
+      # SCA：pip-audit 直接读 requirements.txt（只扫你声明的包），匿名可用、无需登录。
+      # 基线已经是 0 漏洞，所以这里可以放心让它变成"门禁"——一旦有人引入带漏洞的版本就会红。
+      # 注意：不要用 | tee，管道会把退出码吃掉（那就是另一种形式的 || true）。
+      - name: SCA - pip-audit
+        run: |
+          pip-audit -r requirements.txt --desc --format columns > pip-audit-report.txt
+          cat pip-audit-report.txt
+
+      # always() 是关键：上一步失败时也要把报告捞出来
       - name: Upload scan reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: security-reports
           path: |
             bandit-report.json
-            safety-report.txt
+            pip-audit-report.txt
+          retention-days: 14
+          if-no-files-found: warn
