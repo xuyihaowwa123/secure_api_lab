@@ -10,7 +10,7 @@ in pgAdmin 4: reproduction, root cause, the applied fix, and proof that the fix 
 | | |
 |---|---|
 | Repository | <https://github.com/xuyihaowwa123/secure_api_lab> |
-| Last successful pipeline | <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39786413411> |
+| Last successful pipeline | <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39888693427> |
 | Vulnerable environment | `vulhub/pgadmin:6.16` (Docker 29.9.1 / Docker Compose v5.6.0) |
 | Fixed environment | `dpage/pgadmin4:6.18` |
 
@@ -97,13 +97,13 @@ The first version of this project pinned packages that carried known vulnerabili
 The token middleware already pins the expected algorithm (`algorithms=["HS256"]`), which is why the algorithm-confusion and allow-list findings were not exploitable here; the upgrade removes them from the report regardless. Python 3.8 reached end of life in October 2024, so the project now targets 3.11 — Flask 3.1 and python-dotenv 1.2 require 3.9 and 3.10 respectively. `pip-audit -r requirements.txt` reports `No known vulnerabilities found`, and the upgrade was smoke-tested against all three endpoints locally before it was committed.
 
 ### Pipeline results
-Latest run: <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39786413411>
+Latest run: <https://github.com/xuyihaowwa123/secure_api_lab/actions/runs/39888693427>
 
 ![CI pipeline — both jobs green](<screenshots/屏幕截图 2026-10-22 214108.png>)
 
 ### SAST and SCA reports
-![Bandit and pip-audit step logs](<screenshots/屏幕截图 2026-10-22 213714.png>)
-![Bandit and pip-audit step logs](<screenshots/屏幕截图 2026-10-22 215027.png>)
+![SAST — Bandit: no issues identified](<screenshots/屏幕截图 2026-10-22 213714.png>)
+![SCA — pip-audit: no known vulnerabilities found](<screenshots/屏幕截图 2026-10-22 215027.png>)
 ## 5. API Testing (Postman/curl)
 
 Tested the API using Postman to ensure authentication works and access without a token is denied.
