@@ -48,11 +48,25 @@ jobs:
           bandit -r . -x ./venv -f json -o bandit-report.json --exit-zero
           bandit -r . -x ./venv -f txt
 
-      # SCA：pip-audit 
+      # SCA：pip-audit 只扫 requirements.txt 里声明的包，匿名可用。
+      # pip-audit 把汇总信息写到 stderr，stdout 只在"确实有漏洞"时才有内容，
+      # 所以必须 2>&1 一起重定向，否则无漏洞时报告文件是 0 字节。
+      # 不用 | tee：管道的退出码是 tee 的，等于把门禁换成了另一种 || true。
       - name: SCA - pip-audit
         run: |
-          pip-audit -r requirements.txt --desc --format columns > pip-audit-report.txt
+          set +e
+          {
+            echo "# pip-audit report"
+            echo "# target : requirements.txt"
+            echo "# tool   : $(pip-audit --version)"
+            echo "# python : $(python -V 2>&1)"
+            echo "# UTC    : $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo
+            pip-audit -r requirements.txt --desc --format columns
+          } > pip-audit-report.txt 2>&1
+          status=$?
           cat pip-audit-report.txt
+          exit $status
 
       
       - name: Upload scan reports
